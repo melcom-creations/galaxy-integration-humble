@@ -175,7 +175,7 @@ GOG Galaxy scans every folder inside this directory during startup. Duplicate pl
 Mesco
 
 **Original Project**  
-[galaxy-integration-humblebundle](https://github.com/UncleGoogle/galaxy-integration-humblebundle/)
+[github.com/UncleGoogle/galaxy-integration-humblebundle](https://github.com/UncleGoogle/galaxy-integration-humblebundle/)
 
 **64-bit Port, Python 3.13 Compatibility Fixes, Dependency Modernization, Configurator Work**  
 melcom
