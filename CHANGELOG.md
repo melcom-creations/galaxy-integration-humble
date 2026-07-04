@@ -1,5 +1,21 @@
 # Changelog
 
+All notable changes to this plugin will be documented in this file.
+
+---
+
+## Version 2.0.6-64bit
+
+### Overview
+Maintenance release. The plugin loader now resolves the bundled `modules` folder case-insensitively so `modules` and `Modules` both work on startup.
+
+### Fixed
+- Fixed a startup failure where `plugin.py` only added one exact folder spelling to `sys.path`, which could break imports when the bundled dependency folder used different capitalization.
+- Fixed dependency loading so bundled modules are discovered even if the folder name is written as `modules`, `Modules`, or another capitalization variant.
+- Hardened bundled dependency bootstrap further by normalizing the resolved modules path and de-duplicating `sys.path` entries, improving reliability of `from galaxy.api...` imports in edge-case startup environments.
+
+---
+
 ## Version 2.0.5-64bit
 
 ### Overview

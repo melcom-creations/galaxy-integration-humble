@@ -14,7 +14,26 @@ import typing as t
 import time
 from functools import partial
 
-sys.path.insert(0, str(pathlib.PurePath(__file__).parent / 'modules'))
+def _add_modules_to_sys_path() -> None:
+    base_dir = pathlib.Path(__file__).resolve().parent
+    candidate_dirs = [base_dir / 'modules', base_dir / 'Modules']
+
+    try:
+        candidate_dirs.extend(
+            d for d in base_dir.iterdir()
+            if d.is_dir() and d.name.lower() == 'modules'
+        )
+    except OSError:
+        # Keep startup resilient even if listing the plugin directory fails.
+        pass
+
+    for candidate_dir in candidate_dirs:
+        candidate_path = str(candidate_dir.resolve())
+        if candidate_dir.is_dir() and candidate_path not in sys.path:
+            sys.path.insert(0, candidate_path)
+            return
+
+_add_modules_to_sys_path()
 
 from galaxy.api.plugin import Plugin, create_and_run_plugin
 from galaxy.api.consts import Platform, OSCompatibility, LocalGameState
