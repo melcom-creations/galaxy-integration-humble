@@ -44,41 +44,6 @@ The resulting directory structure **must** look like this:
 
 5. Start GOG Galaxy.
 
-### If the plugin folder is missing
-
-If a future ZIP archive does **not** already contain the folder
-
-```text
-humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a
-```
-
-perform the following steps:
-
-1. Open:
-
-```text
-%localappdata%\GOG.com\Galaxy\plugins\installed\
-```
-
-2. Create a new folder named exactly:
-
-```text
-humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a
-```
-
-3. Extract **all files from the ZIP archive into this newly created folder**.
-
-The final directory structure must look like this:
-
-```text
-%localappdata%\GOG.com\Galaxy\plugins\installed\
-└── humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\
-    ├── manifest.json
-    ├── plugin.py
-    ├── README.md
-    └── ...
-```
-
 ---
 
 ## 🔧 Interactive Configurator
@@ -120,44 +85,13 @@ D:\Games\Humble
 
 ---
 
-## 🔄 Resetting the Plugin Database
+## 🔄 Resetting the Plugin Database (Recommended)
 
 If the plugin behaves unexpectedly after an update, resetting the local plugin database is recommended.
 
-1. Open:
-
-```text
-C:\ProgramData\GOG.com\Galaxy\storage\plugins\
-```
-
-2. Locate all files beginning with:
-
-```text
-humble_
-```
-
-and ending with:
-
-```text
--storage.db
-```
-
-3. Rename each database by appending `.old` to its filename.
-
-Example:
-
-```text
-humble_xxxxxxxxx-storage.db
-```
-
-becomes
-
-```text
-humble_xxxxxxxxx-storage.db.old
-```
-
-4. Start GOG Galaxy again.
-5. Reconnect the Humble Bundle integration if necessary.
+1. Open `C:\ProgramData\GOG.com\Galaxy\storage\plugins\` and find the files starting with `humble_` and ending in `-storage.db`.
+2. Rename each by appending `.old` (e.g. `humble_xxxxxxxxx-storage.db` -> `humble_xxxxxxxxx-storage.db.old`).
+3. Start GOG Galaxy again and reconnect the Humble Bundle integration if necessary.
 
 ---
 
@@ -207,3 +141,4 @@ If you would like to report a bug or suggest an improvement, please use the cont
 📩 https://melcom-music.de/contact.html
 
 Thank you for your patience and support!
+
