@@ -14,6 +14,14 @@ Maintenance release. The plugin loader now resolves the bundled `modules` folder
 - Fixed dependency loading so bundled modules are discovered even if the folder name is written as `modules`, `Modules`, or another capitalization variant.
 - Hardened bundled dependency bootstrap further by normalizing the resolved modules path and de-duplicating `sys.path` entries, improving reliability of `from galaxy.api...` imports in edge-case startup environments.
 
+### Technical Breakdown
+
+#### 1. Case-insensitive dependency directory resolution
+The bootstrap path resolver now accepts casing variants of the modules folder, preventing startup regressions from packaging-name differences.
+
+#### 2. Normalized path de-duplication
+Injected dependency paths are normalized before insertion, avoiding duplicate `sys.path` entries and reducing import-order instability.
+
 ---
 
 ## Version 2.0.5-64bit
