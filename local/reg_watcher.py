@@ -94,10 +94,14 @@ class WinRegUninstallWatcher:
             raise
 
     def __parse_uninstall_key(self, name, subkey):
+        display_name = self.__get_value(subkey, 'DisplayName')
+        uninstall_string = self.__get_value(subkey, 'UninstallString')
+        if not isinstance(display_name, str) or not isinstance(uninstall_string, str):
+            raise ValueError('Uninstall key is missing required string values')
         return UninstallKey(
             key_name = name,
-            display_name = self.__get_value(subkey, 'DisplayName'),
-            uninstall_string = self.__get_value(subkey, 'UninstallString'),
+            display_name = display_name,
+            uninstall_string = uninstall_string,
             display_icon = self.__get_value(subkey, 'DisplayIcon', optional=True),
             install_location = self.__get_value(subkey, 'InstallLocation', optional=True),
         )

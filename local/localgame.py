@@ -73,10 +73,14 @@ class LocalHumbleGame:
             app_name = self.bundle_name or self.executable
             cmd = ["/usr/bin/open", "-W", "-a", str(app_name)]
             proc = subprocess.Popen(cmd, cwd=app_name.parent)
+        else:
+            raise RuntimeError('Launching Humble games is not supported on this platform')
 
         self.process = psutil.Process(proc.pid)
 
     def uninstall(self):
+        if not self.uninstall_cmd:
+            raise FileNotFoundError('No uninstall command configured')
         subprocess.Popen(self.uninstall_cmd)
 
     async def get_size(self) -> int:

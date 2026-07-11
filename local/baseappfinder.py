@@ -5,7 +5,7 @@ import time
 import os
 import pathlib
 import abc
-from typing import Dict, Set, Iterable, Union, List, AsyncGenerator, Tuple, NamedTuple
+from typing import Dict, Set, Iterable, Union, List, AsyncGenerator, Tuple, NamedTuple, Optional
 from typing import cast
 
 from consts import IS_WINDOWS
@@ -27,10 +27,12 @@ class BaseAppFinder(abc.ABC):
         self.get_close_matches = get_close_matches or self._get_close_matches
         self.find_best_exe = find_best_exe or self._find_best_exe
 
-    async def __call__(self, owned_title_id: Dict[str, str], paths: Set[pathlib.Path]) -> Dict[str, LocalHumbleGame]:
+    async def __call__(self, owned_title_id: Dict[str, str], paths: Optional[Set[pathlib.Path]]) -> Dict[str, LocalHumbleGame]:
         """
         :param owned_title_id: human_name: machine_name dictionary
         """
+        if paths is None:
+            return {}
         start = time.time()
         found_games = await self._scan_folders(paths, set(owned_title_id))
         local_games = {
@@ -92,9 +94,10 @@ class BaseAppFinder(abc.ABC):
             logging.info(f'Found close ({similarity}) matches for {dir_name}: {matches}')
         return matches
 
-    def _find_best_exe(self, dir_path: pathlib.PurePath, app_name: str):
+    def _find_best_exe(self, dir_path: pathlib.PurePath, app_name: str) -> Optional[pathlib.Path]:
         executables = self._pathfinder.find_executables(dir_path)
         if not executables:
             return None
         logging.debug(f'Found execs: {executables}')
-        return self._pathfinder.choose_main_executable(app_name, executables)
+        executable = self._pathfinder.choose_main_executable(app_name, executables)
+        return pathlib.Path(executable) if executable else None

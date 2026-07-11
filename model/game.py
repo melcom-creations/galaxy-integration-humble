@@ -1,7 +1,7 @@
 import abc
 import logging
 from dataclasses import dataclass, asdict
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Union
 
 from galaxy.api.types import Game, LicenseType, LicenseInfo, SubscriptionGame
 
@@ -13,9 +13,14 @@ class HumbleGame(abc.ABC):
     def __init__(self, data: dict):
         self._data = data
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def downloads(self) -> Dict[HP, Any]:
-        pass
+        raise NotImplementedError
+
+    @property
+    def license(self) -> LicenseInfo:
+        raise NotImplementedError
 
     def os_compatibile(self, os: HP) -> bool:
         return os in self.downloads
@@ -28,7 +33,7 @@ class HumbleGame(abc.ABC):
     def machine_name(self) -> str:
         return self._data['machine_name']
 
-    def in_galaxy_format(self):
+    def in_galaxy_format(self) -> Union[Game, SubscriptionGame]:
         dlcs = []  # not supported for now
         return Game(self.machine_name, self.human_name, dlcs, self.license)
 
@@ -68,7 +73,7 @@ class TroveGame(HumbleGame):
         except (ValueError, KeyError):  # extra safety in case of changed format
             return None
 
-    def in_galaxy_format(self):
+    def in_galaxy_format(self) -> SubscriptionGame:
         return SubscriptionGame(game_title=self.human_name, game_id=self.machine_name, start_time=self.date_added)
 
     def serialize(self):
@@ -179,7 +184,7 @@ class ChoiceGame(HumbleGame):
         else:
             return f'https://www.humblebundle.com/subscription/{self.slug}/{self.id}'
 
-    def in_galaxy_format(self):
+    def in_galaxy_format(self) -> SubscriptionGame:
         return SubscriptionGame(game_title=self.title, game_id=self.id)
 
     def serialize(self):

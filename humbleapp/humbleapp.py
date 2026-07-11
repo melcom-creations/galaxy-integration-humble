@@ -7,11 +7,14 @@ import logging
 import typing as t
 import webbrowser
 from dataclasses import dataclass
+from importlib import import_module
 
 IS_WINDOWS = sys.platform == 'win32'
 
+winreg: t.Any = None
+
 if IS_WINDOWS:
-    import winreg
+    winreg = import_module('winreg')
 
 
 logger = logging.getLogger(__name__)
