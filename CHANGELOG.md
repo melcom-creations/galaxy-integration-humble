@@ -4,6 +4,19 @@ All notable changes to this plugin will be documented in this file.
 
 ---
 
+## Version 2.0.7-64bit
+
+### Fixed
+
+- **Repeated Game Time Imports Reported as Errors:** GOG Galaxy can send a second game-time import request while the first import is still running. The plugin now leaves the active import in place and ignores the duplicate request instead of returning `ImportInProgress`.
+- **Early synchronization is handled safely:** Library and local-game checks now tolerate startup before the library resolver is ready and represent the no-path scan mode explicitly.
+- **Incomplete local client data no longer interrupts synchronization:** Local scans now tolerate missing registry values, executable paths, and uninstall commands.
+- **Authentication and subscription responses are validated before use:** Malformed or incomplete response data now stops the affected synchronization step safely instead of causing an unbound-variable failure.
+- **Owned and subscription games are separated consistently:** Purchased games continue through the owned-games import while subscription entries are handled by the subscription import path.
+- **Sensitive log filtering handles optional logging data safely:** Redaction now accepts log records without positional arguments and preserves the original game payload.
+
+---
+
 ## Version 2.0.6-64bit
 
 ### Overview for Version 2.0.6-64bit

@@ -151,11 +151,20 @@ class AuthorizedHumbleAPI:
             with handle_exception():
                 res.raise_for_status()
             data = await res.json()
-            if not data['previous_months']:
+            previous_months = data.get('previous_months')
+            if not isinstance(previous_months, list) or not previous_months:
                 return
-            for prev_month in data['previous_months']:
+            for prev_month in previous_months:
+                if not isinstance(prev_month, dict):
+                    continue
                 yield ChoiceMonth(prev_month)
-            from_product = prev_month['machine_name']
+            last_month = previous_months[-1]
+            if not isinstance(last_month, dict):
+                return
+            machine_name = last_month.get('machine_name')
+            if not isinstance(machine_name, str):
+                return
+            from_product = machine_name
 
     async def _get_webpack_data(self, path: str, webpack_id: str) -> dict:
         res = await self._request('GET', path)

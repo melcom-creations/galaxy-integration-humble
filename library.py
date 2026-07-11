@@ -31,7 +31,7 @@ class LibraryResolver:
         api: AuthorizedHumbleAPI,
         settings: LibrarySettings,
         save_cache_callback: Callable,
-        cache: Dict[str, list]
+        cache: Dict[str, Any]
     ):
         self._api = api
         self._save_cache = save_cache_callback
@@ -93,7 +93,7 @@ class LibraryResolver:
         if len(items) == 0:
             return []
 
-        err: List[Exception] = []
+        err: List[BaseException] = []
         ok: List[Any] = []
         for it in items:
             (err if isinstance(it, Exception) else ok).append(it)

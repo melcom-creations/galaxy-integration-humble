@@ -61,6 +61,6 @@ async def _get_ami_from_marketing(api: AuthorizedHumbleAPI) -> ActiveMonthInfoBy
         marketing_data = await api.get_choice_marketing_data()
         machine_name = marketing_data['activeContentMachineName']
     except (KeyError, UnknownBackendResponse) as e:
-        raise UnknownBackendResponse(e)
+        raise UnknownBackendResponse(str(e))
     else:
         return ActiveMonthInfoByUser(machine_name, False)

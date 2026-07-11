@@ -37,8 +37,8 @@ _add_modules_to_sys_path()
 
 from galaxy.api.plugin import Plugin, create_and_run_plugin
 from galaxy.api.consts import Platform, OSCompatibility, LocalGameState
-from galaxy.api.types import Authentication, NextStep, LocalGame, GameLibrarySettings, Subscription, SubscriptionGame, GameTime
-from galaxy.api.errors import AuthenticationRequired, UnknownBackendResponse, UnknownError, BackendError
+from galaxy.api.types import Authentication, NextStep, LocalGame, Game, GameLibrarySettings, Subscription, SubscriptionGame, GameTime
+from galaxy.api.errors import AuthenticationRequired, UnknownBackendResponse, UnknownError, BackendError, ImportInProgress
 
 from consts import IS_WINDOWS, TROVE_SUBSCRIPTION_NAME
 from settings import Settings
@@ -195,8 +195,12 @@ class HumbleBundlePlugin(Plugin):
 
         async with self._getting_owned_games:
             logging.debug('getting owned games')
-            self._owned_games = await self._library_resolver()
-            return [g.in_galaxy_format() for g in self._owned_games.values()]
+            library_resolver = self._library_resolver
+            if library_resolver is None:
+                raise UnknownError()
+            self._owned_games = await library_resolver()
+            games = [g.in_galaxy_format() for g in self._owned_games.values()]
+            return [game for game in games if isinstance(game, Game)]
 
     @staticmethod
     def _normalize_subscription_name(machine_name: str):
@@ -305,6 +309,7 @@ class HumbleBundlePlugin(Plugin):
             return
 
         self._under_installation.add(game_id)
+        game = None
         try:
             if game_id in self._humbleapp_client:
                 self._humbleapp_client.install(game_id)
@@ -335,7 +340,7 @@ class HumbleBundlePlugin(Plugin):
                 webbrowser.open(urls['signed_url'])
 
         except Exception as e:
-            logging.error(e, extra={'game': game})
+            logging.error(e, extra={'game': game} if game is not None else None)
             raise
         finally:
             self._under_installation.remove(game_id)
@@ -412,12 +417,17 @@ class HumbleBundlePlugin(Plugin):
 
     async def _check_owned(self):
         async with self._getting_owned_games:
+            library_resolver = self._library_resolver
+            if library_resolver is None:
+                return
             old_ids = self._owned_games.keys()
-            self._owned_games = await self._library_resolver(only_cache=True)
+            self._owned_games = await library_resolver(only_cache=True)
             for old_id in old_ids - self._owned_games.keys():
                 self.remove_game(old_id)
             for new_id in self._owned_games.keys() - old_ids:
-                self.add_game(self._owned_games[new_id].in_galaxy_format())
+                game = self._owned_games[new_id].in_galaxy_format()
+                if isinstance(game, Game):
+                    self.add_game(game)
         # Increase the throttle to reduce the impact of rapid library updates.
         await asyncio.sleep(3)
 
@@ -533,6 +543,12 @@ class HumbleBundlePlugin(Plugin):
             time_played=time_played,
             last_played_time=last_played
         )
+
+    async def _start_game_times_import(self, game_ids: t.List[str]) -> None:
+        try:
+            await super()._start_game_times_import(game_ids)
+        except ImportInProgress:
+            logger.debug("Game time import request ignored while an import is already running")
 
     async def shutdown(self):
         self._owned_check.cancel()

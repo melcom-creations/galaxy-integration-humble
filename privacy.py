@@ -11,14 +11,13 @@ class SensitiveFilter(logging.Filter):
 
     def filter(self, record):
         record.msg = self.redact(record.msg)
-        if hasattr(record, self.KEY):
-            record.redeemed_key_val = self.redact(record.redeemed_key_val)
-        if hasattr(record, 'game'):
-            record.game = self.redact(record.game)
+        for key in (self.KEY, 'game'):
+            if key in record.__dict__:
+                record.__dict__[key] = self.redact(record.__dict__[key])
         if isinstance(record.args, dict):
-            for k in record.args.keys():
-                record.args[k] = self.redact(record.args[k])
-        else:
+            for key, value in record.args.items():
+                record.args[key] = self.redact(value)
+        elif record.args:
             record.args = tuple(self.redact(arg) for arg in record.args)
         return True
 
@@ -35,4 +34,3 @@ class SensitiveFilter(logging.Filter):
             reg = r'((?:[A-Z0-9?]{3,8}-){2,6}[A-Z0-9?]{3,8})(?P<end>[\s\,\"]?)'
             msg = re.sub(reg, rf'{self.SECRET}\g<end>', msg, flags=re.IGNORECASE)
         return msg
-

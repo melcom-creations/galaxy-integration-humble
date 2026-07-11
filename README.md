@@ -29,7 +29,7 @@ The original community integration has been updated for the current 64-bit GOG G
 %localappdata%\GOG.com\Galaxy\plugins\installed\
 ```
 
-4. Extract the ZIP archive **directly into this folder**.
+1. Extract the ZIP archive **directly into this folder**.
 
 The resulting directory structure **must** look like this:
 
@@ -42,7 +42,7 @@ The resulting directory structure **must** look like this:
     └── ...
 ```
 
-5. Start GOG Galaxy.
+1. Start GOG Galaxy.
 
 ---
 
@@ -93,6 +93,23 @@ If the plugin behaves unexpectedly after an update, resetting the local plugin d
 2. Rename each by appending `.old` (e.g. `humble_xxxxxxxxx-storage.db` -> `humble_xxxxxxxxx-storage.db.old`).
 3. Start GOG Galaxy again and reconnect the Humble Bundle integration if necessary.
 
+### 🚀 First Start and Initial Sync (Important)
+
+For a clean first run after installing or updating the plugin:
+
+1. Close GOG Galaxy.
+2. Open this folder:
+
+```text
+C:\ProgramData\GOG.com\Galaxy\storage\plugins\
+```
+
+1. If a `humble_...-storage.db` file exists there, delete it.
+2. Start GOG Galaxy.
+3. If you use the Humble app locally, keep it open during the first sync.
+4. In GOG Galaxy, open the account menu (top-right) and click **Sync integrations**.
+5. Wait until sync finishes.
+
 ---
 
 ## ⚠️ Important
@@ -138,7 +155,6 @@ This project is developed and maintained by one person. Response times may vary,
 
 If you would like to report a bug or suggest an improvement, please use the contact form on my website:
 
-📩 https://melcom-music.de/contact.html
+📩 [Contact form](https://melcom-music.de/contact.html)
 
 Thank you for your patience and support!
-
