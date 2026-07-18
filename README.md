@@ -1,82 +1,79 @@
-# Humble Bundle Plugin for GOG Galaxy 2.1+ (64-bit)
+# Humble Bundle Integration Plugin for GOG Galaxy 2.1+ (64-bit)
 
-This repository contains the Humble Bundle integration plugin for the 64-bit version of GOG Galaxy 2.1+.
-
-The original community integration has been updated for the current 64-bit GOG Galaxy client and Python 3.13. This release includes rebuilt 64-bit dependencies, crash fixes during initialization, an updated .NET/pythonnet bridge, and an interactive configurator for first-time setup and later changes.
+This repository contains the Humble Bundle integration plugin for the native 64-bit version of GOG Galaxy 2.1+. It is based on the original community integration and has been updated for the current GOG Galaxy client and Python 3.13. The project includes rebuilt 64-bit dependencies, initialization crash fixes, an updated .NET/pythonnet bridge, an interactive configurator, and ongoing maintenance.
 
 ---
 
 ## ✨ Features
 
-* Compatible with GOG Galaxy 2.1+ (64-bit)
-* Python 3.13 support
-* Updated 64-bit dependencies
-* Improved stability and compatibility
-* Interactive configurator for setup and later changes
-* Ongoing maintenance and bug fixes
+* Imports your owned Humble Bundle games into GOG Galaxy
+* Detects games installed through the Humble app
+* Detects DRM-free games inside user-defined folders
+* Installs, launches, and uninstalls supported games
+* Tracks game time for games launched through the integration
+* Includes an interactive configurator for initial setup and later changes
+* Supports GOG Galaxy 2.1+ 64-bit and Python 3.13
+* Includes rebuilt dependencies, compatibility fixes, and stability improvements
 
 ---
 
 ## 📦 Installation
 
-### Standard Installation (Recommended)
+### Automatic Installation with Plugin Updater (Recommended)
 
-1. Close GOG Galaxy completely.
-2. Download the latest release ZIP from this repository.
-3. Open the following folder:
+The easiest way to install the Humble Bundle integration is with the [melcom GOG Galaxy Plugin Updater](https://github.com/melcom-creations/galaxy-integrations-64bit/tree/main/tools/melcom-galaxy_plugin_updater). The updater detects existing integrations and can install any supported melcom plugins that are still missing.
+
+1. Download and extract the Plugin Updater.
+2. Double-click `update-plugins.bat`.
+3. Select your preferred language.
+4. Follow the displayed instructions.
+
+### Manual Installation
+
+1. Close GOG Galaxy completely and make sure it is no longer running in the system tray.
+2. Download the latest release package from this repository.
+3. Extract the ZIP archive directly into:
 
 ```text
 %localappdata%\GOG.com\Galaxy\plugins\installed\
 ```
 
-1. Extract the ZIP archive **directly into this folder**.
-
-The resulting directory structure **must** look like this:
+The resulting directory structure must look like this:
 
 ```text
 %localappdata%\GOG.com\Galaxy\plugins\installed\
 └── humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\
     ├── manifest.json
     ├── plugin.py
+    ├── configurator.bat
     ├── README.md
     └── ...
 ```
 
-1. Start GOG Galaxy.
+4. Continue with **Interactive Configurator** and **First Start and Initial Sync** below.
 
 ---
 
 ## 🔧 Interactive Configurator
 
-The old manual config-file workflow is no longer the recommended way to configure the plugin.
+The interactive configurator guides you through the setup, validates your input, and writes the required configuration automatically. It opens the first time you connect the Humble Bundle integration through GOG Galaxy. The old manual configuration workflow is no longer recommended.
 
-The new interactive configurator guides you through setup step by step, validates your input, and writes the correct configuration for you. It starts automatically the first time you connect to Humble Bundle through the 64-bit GOG Galaxy client v2.1+.
+The configurator lets you select the folders containing your DRM-free Humble games. It validates every path and warns you before creating a missing directory or accepting a potentially unsafe root location.
 
-If you want to change the settings later, simply double-click the left mouse button on the **Install** button of any Humble Bundle game and the configurator opens again.
-
-If that still does not work, open this folder manually:
+To change the configuration later, double-click the **Install** button of any Humble Bundle game in GOG Galaxy. If the configurator does not open that way, start it manually from:
 
 ```text
-%localappdata%\GOG.com\Galaxy\plugins\installed\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\
+%localappdata%\GOG.com\Galaxy\plugins\installed\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\configurator.bat
 ```
 
-Then start:
+### Configuration Steps
 
-```text
-configurator.bat
-```
+1. Select your preferred language.
+2. Enter the folder containing your DRM-free Humble games.
+3. Confirm folder creation if the directory does not exist.
+4. Review and confirm the remaining settings.
 
-The configurator helps you define the folder where your DRM-free Humble games are installed. It uses strict path validation, clear error messages, and safe prompts when a folder does not exist yet or when a root path could be risky.
-
-Typical flow:
-
-1. Start the configurator.
-2. Choose your language.
-3. Enter the game folder path.
-4. Confirm folder creation if the directory does not exist.
-5. Continue with the remaining setup steps.
-
-Examples of valid paths include:
+Examples of valid game folders:
 
 ```text
 D:\Humble
@@ -85,30 +82,34 @@ D:\Games\Humble
 
 ---
 
-## 🔄 Resetting the Plugin Database (Recommended)
+## 🚀 First Start and Initial Sync
 
-If the plugin behaves unexpectedly after an update, resetting the local plugin database is recommended.
+For the first synchronization after installing, updating, or configuring the plugin:
 
-1. Open `C:\ProgramData\GOG.com\Galaxy\storage\plugins\` and find the files starting with `humble_` and ending in `-storage.db`.
-2. Rename each by appending `.old` (e.g. `humble_xxxxxxxxx-storage.db` -> `humble_xxxxxxxxx-storage.db.old`).
-3. Start GOG Galaxy again and reconnect the Humble Bundle integration if necessary.
-
-### 🚀 First Start and Initial Sync (Important)
-
-For a clean first run after installing or updating the plugin:
-
-1. Close GOG Galaxy.
-2. Open this folder:
-
-```text
-C:\ProgramData\GOG.com\Galaxy\storage\plugins\
-```
-
-1. If a `humble_...-storage.db` file exists there, delete it.
+1. If you use the Humble app, start it and keep it open.
 2. Start GOG Galaxy.
-3. If you use the Humble app locally, keep it open during the first sync.
-4. In GOG Galaxy, open the account menu (top-right) and click **Sync integrations**.
-5. Wait until sync finishes.
+3. Connect the Humble Bundle integration through **Settings -> Integrations** if necessary.
+4. Complete the interactive configuration when it opens.
+5. Open the account menu in the top-right corner and select **Sync integrations**.
+6. Wait until the synchronization has finished.
+
+---
+
+## 🔄 Resetting the Plugin Database (Troubleshooting)
+
+Reset the local plugin database only if the integration behaves unexpectedly or synchronization problems continue after restarting GOG Galaxy.
+
+1. Close GOG Galaxy completely.
+2. Open `C:\ProgramData\GOG.com\Galaxy\storage\plugins\`.
+3. Find every file starting with `humble_` and ending in `-storage.db`.
+4. Rename each matching file by appending `.old`, for example:
+
+   `humble_xxxxxxxxx-storage.db` -> `humble_xxxxxxxxx-storage.db.old`
+
+5. If you use the Humble app, start it and keep it open.
+6. Start GOG Galaxy and reconnect the Humble Bundle integration if necessary.
+7. Open the account menu in the top-right corner and select **Sync integrations**.
+8. Wait until the synchronization has finished.
 
 ---
 
@@ -126,9 +127,9 @@ GOG Galaxy scans every folder inside this directory during startup. Duplicate pl
 Mesco
 
 **Original Project**  
-[github.com/UncleGoogle/galaxy-integration-humblebundle](https://github.com/UncleGoogle/galaxy-integration-humblebundle/)
+[UncleGoogle/galaxy-integration-humblebundle](https://github.com/UncleGoogle/galaxy-integration-humblebundle)
 
-**64-bit Port, Python 3.13 Compatibility Fixes, Dependency Modernization, Configurator Work**  
+**64-bit Port, Python 3.13 Compatibility, Dependency Modernization and Configurator**  
 melcom
 
 ---
