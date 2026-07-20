@@ -13,6 +13,9 @@ This plugin imports your Humble Bundle library into GOG Galaxy 2.1+ 64-bit. Base
 * Tracks game time for games launched through the integration
 * Includes an interactive configurator for initial setup and later changes
 
+> [!NOTE]
+> macOS compatibility may be technically possible, but it is currently untested because I do not have access to a Mac. If you use macOS and would like to help test the integration, feel free to contact me.
+
 ---
 
 ## 📦 Installation
