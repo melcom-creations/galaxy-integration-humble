@@ -2,7 +2,9 @@
 
 This plugin imports your Humble Bundle library into GOG Galaxy 2.1+ 64-bit. Based on the original community integration, it has been updated for the current GOG Galaxy client and Python 3.13, with rebuilt dependencies and an interactive configurator.
 
----
+The steps below are for Windows. Dependencies are bundled; no separate Python installation is needed.
+
+[Installation](#-installation) | [First Start](#-first-start-and-initial-sync) | [Troubleshooting](#-troubleshooting) | [Support & Feedback](#-support--feedback)
 
 ## ✨ Features
 
@@ -16,47 +18,36 @@ This plugin imports your Humble Bundle library into GOG Galaxy 2.1+ 64-bit. Base
 > [!NOTE]
 > macOS compatibility may be technically possible, but it is currently untested because I do not have access to a Mac. If you use macOS and would like to help test the integration, feel free to contact me.
 
----
-
 ## 📦 Installation
 
-### Automatic Installation with Plugin Updater (Recommended)
+### 🔄 Automatic Installation with Plugin Updater (Recommended)
 
-Use the [melcom GOG Galaxy Plugin Updater](https://github.com/melcom-creations/galaxy-integrations-64bit/tree/main/tools/melcom-galaxy_plugin_updater) to install or update the integration automatically.
+Use the [melcom GOG Galaxy Plugin Updater](https://github.com/melcom-creations/galaxy-integrations-64bit/tree/main/tools/melcom-galaxy_plugin_updater) to install or update the integration.
 
 1. Download and extract the Plugin Updater.
 2. Double-click `update-plugins.bat`.
-3. Select your preferred language.
-4. Follow the displayed instructions.
+3. Select your preferred language and follow the displayed instructions.
 
-### Manual Installation
+### 📂 Manual Installation
 
 1. Close GOG Galaxy completely, including the system tray application.
-2. Download the latest release package from this repository.
-3. Extract the ZIP archive directly into:
+2. Download the [latest release package](https://github.com/melcom-creations/galaxy-integration-humble/releases/latest).
+3. Extract the plugin folder from the ZIP archive into:
+
+   ```text
+   %localappdata%\GOG.com\Galaxy\plugins\installed\
+   ```
+
+Place `manifest.json` directly inside this folder, without an extra nested plugin folder:
 
 ```text
-%localappdata%\GOG.com\Galaxy\plugins\installed\
+%localappdata%\GOG.com\Galaxy\plugins\installed\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\
 ```
-
-The resulting directory structure must look like this:
-
-```text
-%localappdata%\GOG.com\Galaxy\plugins\installed\
-└── humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\
-    ├── manifest.json
-    ├── plugin.py
-    ├── configurator.bat
-    ├── README.md
-    └── ...
-```
-
-**Next step:** Continue with **Interactive Configurator** and **First Start and Initial Sync** below.
 
 > [!IMPORTANT]
 > Do not place backup copies of this plugin inside the `plugins\installed` directory. GOG Galaxy scans every folder inside this directory during startup, so duplicate plugin folders can cause GUID conflicts or load an outdated version.
 
----
+**Next step:** Continue with [Interactive Configurator](#-interactive-configurator), then [First Start and Initial Sync](#-first-start-and-initial-sync).
 
 ## 🔧 Interactive Configurator
 
@@ -70,7 +61,7 @@ To change the configuration later, double-click the **Install** button of any Hu
 %localappdata%\GOG.com\Galaxy\plugins\installed\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\configurator.bat
 ```
 
-### Configuration Steps
+### 📋 Configuration Steps
 
 1. Select your preferred language.
 2. Enter the folder containing your DRM-free Humble games.
@@ -84,8 +75,6 @@ D:\Humble
 D:\Games\Humble
 ```
 
----
-
 ## 🚀 First Start and Initial Sync
 
 For the first synchronization after installing, updating, or configuring the plugin:
@@ -97,54 +86,30 @@ For the first synchronization after installing, updating, or configuring the plu
 5. Open the account menu in the top-right corner and select **Sync integrations**.
 6. Wait until the synchronization has finished.
 
----
+## 🛠️ Troubleshooting
 
-## 🔄 Resetting the Plugin Database (Troubleshooting)
+Restart Galaxy and try one synchronization. If the problem remains, collect a fresh log. A database reset is not required for this.
 
-Reset the local plugin database if synchronization problems continue after restarting GOG Galaxy.
-
-1. Close GOG Galaxy completely.
-2. Open `C:\ProgramData\GOG.com\Galaxy\storage\plugins\`.
-3. Find every file starting with `humble_` and ending in `-storage.db`.
-4. Rename each matching file by appending `.old`, for example:
-
-   `humble_xxxxxxxxx-storage.db` -> `humble_xxxxxxxxx-storage.db.old`
-
-5. If you use the Humble app, start it and keep it open.
-6. Start GOG Galaxy, reconnect the integration if necessary, select **Sync integrations** from the account menu, and wait for synchronization to finish.
-
----
-
-## 🛠️ What to Do If the Plugin Has Problems
-
-If the database reset above does not resolve the problem, create a clean session with fresh diagnostic files before contacting me. The reset procedure preserves the previous database as a `.old` file; the steps below remove the active database so the issue can be reproduced from a clean state.
+### 🧪 Create a Fresh Diagnostic Log
 
 1. Close GOG Galaxy completely, including the system tray application.
-2. Open the following directory and delete the existing log files:
+2. Open `%ProgramData%\GOG.com\Galaxy\logs\`. Move the existing `plugin-humble-f0ca3d80-a432-4d35-a9e3-60f27161ac3a.log` to a backup folder outside this directory, if present. Leave other logs in place.
+3. If used, start the Humble app. Start Galaxy, reproduce the problem once, then close Galaxy completely to finish writing the log.
+4. Send the newly created plugin log, not the entire folder. Include the plugin and Galaxy versions, your steps, the expected and actual result, and whether the problem can be reproduced.
 
-   ```text
-   %ProgramData%\GOG.com\Galaxy\logs
-   ```
+See [Support & Feedback](#-support--feedback) for contact options.
 
-3. Open the plugin storage directory:
+### 🔄 Reset Plugin Storage (Last Resort)
 
-   ```text
-   C:\ProgramData\GOG.com\Galaxy\storage\plugins
-   ```
+Use this only if restarting and synchronizing do not help, or when requested for troubleshooting. Cached library data and local playtime may be lost; signing in again may be required. Keep the backup.
 
-   Delete only the active Humble Bundle database file starting with `humble_` and ending in `-storage.db`. Do not delete database files belonging to other integrations. If you are unsure which file is correct, do not delete anything from this directory.
-4. If you use the Humble app, start it and keep it open. Start GOG Galaxy, reproduce the problem, and then close GOG Galaxy completely so the new log is fully written.
-5. Return to the logs directory and locate the newly created Humble Bundle plugin log:
+1. Close GOG Galaxy completely, including the system tray application.
+2. Open `%ProgramData%\GOG.com\Galaxy\storage\plugins\`.
+3. Find the active `humble_...-storage.db` file for your Galaxy account. If unsure which file is correct, stop. Leave other integrations' databases unchanged.
+4. Append `.old` to its name. If that backup already exists, use an unused suffix; never overwrite it.
+5. If used, start the Humble app. Start Galaxy, reconnect if necessary, and select **Sync integrations** once. Wait until it finishes.
 
-   ```text
-   plugin-humble-f0ca3d80-a432-4d35-a9e3-60f27161ac3a.log
-   ```
-
-Send only this log file, not the entire logs folder. Include the exact steps taken, the expected and actual result, and whether the problem can be reproduced.
-
-Without a fresh plugin log and a detailed description, I cannot reliably determine what is causing the problem. Once everything is ready, continue with [Support & Feedback](#-support--feedback) for contact options.
-
----
+To undo: close Galaxy, rename the new database to an unused backup name, then restore the saved database's original name. Never restore it while Galaxy is running.
 
 ## 🙏 Credits
 
@@ -156,8 +121,6 @@ Mesco
 
 **64-bit Port, Python 3.13 Compatibility, Dependency Modernization and Configurator**  
 melcom
-
----
 
 ## ❤️ Special Thanks
 
@@ -171,13 +134,11 @@ I want to take a moment to thank the people who kept me going during this intens
 
 Thank you both for having my back!
 
----
-
 ## 🤝 Support & Feedback
 
 **GitHub Issues are intentionally disabled.** Health-related limitations prevent me from reliably managing separate issue trackers across all of my plugin repositories.
 
-Before contacting me, follow **What to Do If the Plugin Has Problems** and prepare a fresh Humble Bundle plugin log with a detailed description.
+Before contacting me, follow [Troubleshooting](#-troubleshooting) and prepare a fresh Humble Bundle plugin log with a detailed description.
 
 * **GOG:** Send me a message or add me as a friend through my [GOG profile](https://www.gog.com/u/melcom).
 * **Email:** `melcom @ gmx.net`
