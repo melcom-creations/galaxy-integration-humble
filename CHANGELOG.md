@@ -4,6 +4,16 @@ All notable changes to this plugin will be documented in this file.
 
 ---
 
+## Version 2.0.8-64bit
+
+### Fixed
+
+- **Session renewal survives restarts:** Renewed Humble session cookies are saved back to Galaxy after successful requests so the next plugin start can reuse the current session.
+- **Rejected saved sessions can be reconnected:** The plugin now opens interactive sign-in when Humble rejects a saved session instead of repeatedly retrying it.
+- **Access denials are handled separately:** HTTP 403 responses remain access errors instead of being treated as expired sessions. HTTP status diagnostics no longer produce empty error messages.
+
+---
+
 ## Version 2.0.7-64bit
 
 ### Fixed

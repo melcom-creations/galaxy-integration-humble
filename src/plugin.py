@@ -38,7 +38,7 @@ _add_modules_to_sys_path()
 from galaxy.api.plugin import Plugin, create_and_run_plugin
 from galaxy.api.consts import Platform, OSCompatibility, LocalGameState
 from galaxy.api.types import Authentication, NextStep, LocalGame, Game, GameLibrarySettings, Subscription, SubscriptionGame, GameTime
-from galaxy.api.errors import AuthenticationRequired, UnknownBackendResponse, UnknownError, BackendError, ImportInProgress
+from galaxy.api.errors import AuthenticationRequired, AccessDenied, UnknownBackendResponse, UnknownError, BackendError, ImportInProgress
 
 from consts import IS_WINDOWS, TROVE_SUBSCRIPTION_NAME
 from settings import Settings
@@ -71,7 +71,7 @@ class HumbleBundlePlugin(Plugin):
     def __init__(self, reader, writer, token):
         super().__init__(Platform.HumbleBundle, __version__, reader, writer, token)
         headers = {"User-Agent": f"HumbleBundle plugin for GOG Galaxy 2.0 v{__version__}"}
-        self._api = AuthorizedHumbleAPI(headers=headers)
+        self._api = AuthorizedHumbleAPI(headers=headers, credentials_callback=self.store_credentials)
         self._download_resolver = HumbleDownloadResolver()
         self._app_finder = AppFinder()
         self._settings = Settings()
@@ -156,7 +156,7 @@ class HumbleBundlePlugin(Plugin):
         try:
             marketing_data = await self._api.get_main_page_webpack_data()
             return marketing_data['userOptions']['email'].split('@')[0]
-        except (BackendError, KeyError, UnknownBackendResponse) as e:
+        except (BackendError, AccessDenied, KeyError, UnknownBackendResponse) as e:
             logger.error(repr(e))
             return ""
     
@@ -165,27 +165,36 @@ class HumbleBundlePlugin(Plugin):
         user_name = await self._get_user_name() or "Humble User"
         return Authentication(user_id, user_name)
 
+    @staticmethod
+    def _login_step():
+        return NextStep("web_session", {
+            "window_title": "Login to HumbleBundle",
+            "window_width": 560,
+            "window_height": 610,
+            "start_uri": "https://www.humblebundle.com/login?goto=/home/library",
+            "end_uri_regex": "^" + re.escape("https://www.humblebundle.com/home/library")
+        })
+
     async def authenticate(self, stored_credentials=None):
         self._save_cache('last_version', __version__)
 
         if not stored_credentials:
-            return NextStep("web_session", {
-                    "window_title": "Login to HumbleBundle",
-                    "window_width": 560,
-                    "window_height": 610,
-                    "start_uri": "https://www.humblebundle.com/login?goto=/home/library",
-                    "end_uri_regex": "^" + re.escape("https://www.humblebundle.com/home/library")
-                })
+            return self._login_step()
 
         logging.info('Stored credentials found')
-        auth: Authentication = await self._do_auth(stored_credentials)
+        try:
+            auth: Authentication = await self._do_auth(stored_credentials)
+        except AuthenticationRequired:
+            logger.info("Stored Humble session was rejected; requesting interactive sign-in")
+            return self._login_step()
         self._maybe_open_install_config()
         return auth
 
     async def pass_login_credentials(self, step, credentials, cookies):
-        auth_cookie = next(filter(lambda c: c['name'] == '_simpleauth_sess', cookies))
+        auth_cookie = next((c for c in cookies if c.get('name') == '_simpleauth_sess'), None)
+        if auth_cookie is None:
+            raise AuthenticationRequired()
         auth: Authentication = await self._do_auth(auth_cookie)
-        self.store_credentials(auth_cookie)
         self._maybe_open_install_config()
         return auth
 

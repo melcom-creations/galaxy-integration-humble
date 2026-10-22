@@ -25,7 +25,7 @@ def handle_exception():
         try:
             yield
         except Exception as e:
-            logger.error(e)
+            logger.error("Humble request failed (%s)", type(e).__name__)
             raise
 
 
@@ -35,6 +35,7 @@ class WebpackParseError(UnknownBackendResponse):
 
 class AuthorizedHumbleAPI:
     _AUTHORITY = "https://www.humblebundle.com/"
+    _AUTH_COOKIE_NAME = "_simpleauth_sess"
     _PROCESS_LOGIN = "processlogin"
     _ORDER_LIST_URL = "api/v1/user/order"
     _ORDER_URL = "/api/v1/order/{}"
@@ -55,46 +56,135 @@ class AuthorizedHumbleAPI:
         "Keep-Alive": "true",
     }
 
-    def __init__(self, headers: t.Dict[str, t.Any]):
+    def __init__(self, headers: t.Dict[str, t.Any],
+                 credentials_callback: t.Optional[t.Callable[[dict], None]] = None):
         headers={**self._DEFAULT_HEADERS, **headers}
         self._session = galaxy.http.create_client_session(headers=headers)
+        self._credentials_callback = credentials_callback
+        self._authenticated = False
+        self._user_id: t.Optional[str] = None
+        self._session_cookie: t.Optional[str] = None
+        self._last_stored_cookie: t.Optional[str] = None
 
     @property
     def is_authenticated(self) -> bool:
-        return bool(self._session.cookie_jar)
+        return self._authenticated and self._session_cookie is not None
+
+    def _set_session_cookie(self, value: str) -> None:
+        cookie = SimpleCookie()
+        cookie[self._AUTH_COOKIE_NAME] = value
+        cookie[self._AUTH_COOKIE_NAME]['path'] = '/'
+        self._session.cookie_jar.clear(lambda item: item.key == self._AUTH_COOKIE_NAME)
+        self._session.cookie_jar.update_cookies(cookie, response_url=yarl.URL(self._AUTHORITY))
+        self._session_cookie = value
+
+    def _update_session_cookie(self, response: aiohttp.ClientResponse) -> None:
+        origin = yarl.URL(self._AUTHORITY)
+        hostname = origin.host or ''
+        for received in (*response.history, response):
+            if received.url.origin() != origin.origin():
+                continue
+            cookie = received.cookies.get(self._AUTH_COOKIE_NAME)
+            if cookie is None:
+                continue
+            domain = cookie['domain'].lstrip('.')
+            if domain and hostname != domain and not hostname.endswith('.' + domain):
+                continue
+            if cookie.value:
+                try:
+                    user_id = self._decode_user_id(cookie.value)
+                except UnknownBackendResponse:
+                    logger.warning("Ignoring a renewed Humble session with an invalid user identity")
+                    if self._session_cookie is not None:
+                        self._set_session_cookie(self._session_cookie)
+                    continue
+                if str(user_id) != str(self._user_id):
+                    logger.warning("Ignoring a renewed Humble session for a different account")
+                    if self._session_cookie is not None:
+                        self._set_session_cookie(self._session_cookie)
+                    continue
+            # Replace the old cookie even when Humble changes its domain scope.
+            self._session.cookie_jar.clear(lambda item: item.key == self._AUTH_COOKIE_NAME)
+            self._session.cookie_jar.update_cookies(
+                {self._AUTH_COOKIE_NAME: cookie}, response_url=received.url
+            )
+            active = self._session.cookie_jar.filter_cookies(origin.join(yarl.URL(self._ORDER_LIST_URL)))
+            current = active.get(self._AUTH_COOKIE_NAME)
+            self._session_cookie = current.value if current and current.value else None
+            if self._session_cookie is None:
+                self._authenticated = False
+
+    def _save_session_cookie(self) -> None:
+        if not self.is_authenticated or self._credentials_callback is None:
+            return
+        if self._session_cookie == self._last_stored_cookie:
+            return
+        self._credentials_callback({'name': self._AUTH_COOKIE_NAME, 'value': self._session_cookie})
+        self._last_stored_cookie = self._session_cookie
 
     async def _request(self, method, path, *args, **kwargs):
         url = self._AUTHORITY + path
-        logger.debug(f'{method}, {url}, {args}, {kwargs}')
+        logger.debug("Humble request: method=%s", method)
+        raise_for_status = kwargs.pop('raise_for_status', True)
         with handle_exception():
-            return await self._session.request(method, url, *args, **kwargs)
+            response = await self._session.request(method, url, *args, raise_for_status=False, **kwargs)
+            if response.status >= 400:
+                logger.warning("Humble HTTP request rejected: method=%s, status=%d", method, response.status)
+                if response.status == HTTPStatus.UNAUTHORIZED:
+                    self._authenticated = False
+            else:
+                self._update_session_cookie(response)
+                self._save_session_cookie()
+            if raise_for_status:
+                response.raise_for_status()
+            return response
 
     async def _validate_authentication(self) -> None:
         """Raises galaxy.api.errors.AuthenticationRequired when session got invalidated."""
         with handle_exception():
             response = await self._request('get', self._ORDER_LIST_URL, raise_for_status=False)
-            if response.status in (401, 403):
-                raise AuthenticationRequired()
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            finally:
+                response.release()
 
     def _decode_user_id(self, _simpleauth_sess) -> str:
-        info = _simpleauth_sess.split('|')[0]
-        info += '=='  # Base64 decoding expects padded input.
-        decoded = json.loads(base64.b64decode(info))
-        return decoded['user_id']
+        try:
+            info = _simpleauth_sess.split('|')[0]
+            info += '=='  # Base64 decoding expects padded input.
+            decoded = json.loads(base64.b64decode(info))
+            user_id = decoded['user_id']
+            if isinstance(user_id, bool) or not isinstance(user_id, (str, int)) or not str(user_id):
+                raise ValueError()
+            return str(user_id)
+        except (ValueError, KeyError, TypeError, UnicodeError):
+            raise UnknownBackendResponse("Humble session has an invalid user identity") from None
 
     async def authenticate(self, auth_cookie: dict) -> str:
+        self._authenticated = False
+        self._user_id = None
+        self._last_stored_cookie = None
+        if not isinstance(auth_cookie, dict) or auth_cookie.get('name') != self._AUTH_COOKIE_NAME:
+            raise AuthenticationRequired()
+        if not isinstance(auth_cookie.get('value'), str) or not auth_cookie['value']:
+            raise AuthenticationRequired()
         # Rebuild the original cookie object.
-        cookie = SimpleCookie()
-        cookie_val = bytes(auth_cookie['value'], "utf-8").decode("unicode_escape")
-        # Some cookie values contain escaped characters while others do not.
-        # Strip quotes from the escaped form.
-        cookie_val = cookie_val.replace('"', '')
-        cookie[auth_cookie['name']] = cookie_val
-
-        self._session.cookie_jar.update_cookies(cookie)
+        try:
+            cookie_val = bytes(auth_cookie['value'], "utf-8").decode("unicode_escape")
+            # Some cookie values contain escaped characters while others do not.
+            # Strip quotes from the escaped form.
+            cookie_val = cookie_val.replace('"', '')
+            user_id = self._decode_user_id(cookie_val)
+        except (UnknownBackendResponse, UnicodeError):
+            raise AuthenticationRequired() from None
+        self._user_id = user_id
+        self._set_session_cookie(cookie_val)
         await self._validate_authentication()
-        return self._decode_user_id(cookie_val)
+        if self._session_cookie is None:
+            raise AuthenticationRequired()
+        self._authenticated = True
+        self._save_session_cookie()
+        return user_id
 
     async def get_gamekeys(self) -> t.List[str]:
         res = await self._request('get', self._ORDER_LIST_URL)
