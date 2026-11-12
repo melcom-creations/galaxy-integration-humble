@@ -8,7 +8,9 @@ This plugin imports your Humble Bundle library into GOG Galaxy 2.1+ 64-bit. Base
 
 The steps below are for Windows. Dependencies are bundled; no separate Python installation is needed.
 
-[Installation](#-installation) | [First Start](#-first-start-and-initial-sync) | [Local Data](#-authentication-and-local-data) | [Troubleshooting](#-troubleshooting) | [Support & Feedback](#-support--feedback)
+[Features](#features) | [Installation](#installation) | [Interactive Configurator](#interactive-configurator) | [First Start and Initial Sync](#first-start-and-initial-sync) | [Authentication and Local Data](#authentication-and-local-data) | [Troubleshooting](#troubleshooting) | [Credits](#credits) | [Special Thanks](#special-thanks) | [Support & Feedback](#support-feedback) | [Changelog](CHANGELOG.md)
+
+<a id="features"></a>
 
 ## ✨ Features
 
@@ -21,6 +23,8 @@ The steps below are for Windows. Dependencies are bundled; no separate Python in
 
 > [!NOTE]
 > The current Humble website integration uses Windows HTTP services and requires Windows.
+
+<a id="installation"></a>
 
 ## 📦 Installation
 
@@ -51,7 +55,9 @@ Place `manifest.json` directly inside this folder, without an extra nested plugi
 > [!IMPORTANT]
 > Do not place backup copies of this plugin inside the `plugins\installed` directory. GOG Galaxy scans every folder inside this directory during startup, so duplicate plugin folders can cause GUID conflicts or load an outdated version.
 
-**Next step:** Continue with [Interactive Configurator](#-interactive-configurator), then [First Start and Initial Sync](#-first-start-and-initial-sync).
+**Next step:** Continue with [Interactive Configurator](#interactive-configurator), then [First Start and Initial Sync](#first-start-and-initial-sync).
+
+<a id="interactive-configurator"></a>
 
 ## 🔧 Interactive Configurator
 
@@ -87,7 +93,7 @@ Extract each DRM-free game into its own subfolder inside a configured game folde
 
 ### 📝 Configuration File
 
-The configurator writes `galaxy-humble-config.ini` at the location listed under [Data Storage](#-data-storage-and-what-disconnect-removes). Despite its `.ini` extension, this file uses TOML syntax. Manual editing is optional; the plugin reloads saved changes automatically.
+The configurator writes `galaxy-humble-config.ini` at the location listed under [Data Storage](#data-storage-and-what-disconnect-removes). Despite its `.ini` extension, this file uses TOML syntax. Manual editing is optional; the plugin reloads saved changes automatically.
 
 ```toml
 [library]
@@ -106,6 +112,8 @@ search_dirs = [ "E:/Spiele/Humble" ]
 
 The configurator writes Windows paths with forward slashes, such as `E:/Spiele/Humble`, to avoid backslash escaping. If editing a double-quoted TOML path manually, each backslash must be doubled: `"E:\\Spiele\\Humble"`.
 
+<a id="first-start-and-initial-sync"></a>
+
 ## 🚀 First Start and Initial Sync
 
 For the first synchronization after installing, updating, or configuring the plugin:
@@ -119,11 +127,15 @@ For the first synchronization after installing, updating, or configuring the plu
 
 While Humble reports that purchase migration is still in progress, the integration retains previously imported games if they are temporarily absent from the website.
 
+<a id="authentication-and-local-data"></a>
+
 ## 🔒 Authentication and Local Data
 
 Confirm **Connect** in Galaxy's account connection dialog to begin sign-in. The displayed Galaxy sign-in window then opens your Windows default browser with a dedicated temporary profile. Galaxy stores the Humble session cookies as integration credentials. The browser closes and its temporary profile is removed after sign-in.
 
 Galaxy also displays a small waiting window to complete the connection. Keep it open while signing in through the browser; it closes automatically when the connection is complete.
+
+<a id="data-storage-and-what-disconnect-removes"></a>
 
 ### 💾 Data Storage and What Disconnect Removes
 
@@ -136,6 +148,8 @@ Galaxy also displays a small waiting window to complete the connection. Keep it 
 
 The plugin and interactive configurator use the same configuration file. On startup, an existing `%LOCALAPPDATA%\galaxy-hb\galaxy-humble-config.ini` is moved to the new location with its contents preserved. If a configuration already exists at the new location, that file takes priority and the old file is left untouched.
 
+<a id="troubleshooting"></a>
+
 ## 🛠️ Troubleshooting
 
 Restart Galaxy and try one synchronization. If the problem remains, collect a fresh log. A database reset is not required for this.
@@ -147,7 +161,7 @@ Restart Galaxy and try one synchronization. If the problem remains, collect a fr
 3. If used, start the Humble app. Start Galaxy, reproduce the problem once, then close Galaxy completely to finish writing the log.
 4. Send the newly created plugin log, not the entire folder. Include the plugin and Galaxy versions, your steps, the expected and actual result, and whether the problem can be reproduced.
 
-See [Support & Feedback](#-support--feedback) for contact options.
+See [Support & Feedback](#support-feedback) for contact options.
 
 ### 🔄 Reset Plugin Storage (Last Resort)
 
@@ -161,6 +175,8 @@ Use this only if restarting and synchronizing do not help, or when requested for
 
 To undo: close Galaxy, rename the new database to an unused backup name, then restore the saved database's original name. Never restore it while Galaxy is running.
 
+<a id="credits"></a>
+
 ## 🙏 Credits
 
 **Original Plugin Author**  
@@ -171,6 +187,8 @@ Mesco
 
 **64-bit Port, Python 3.13 Compatibility, Dependency Modernization and Configurator**  
 melcom
+
+<a id="special-thanks"></a>
 
 ## ❤️ Special Thanks
 
@@ -184,11 +202,13 @@ I want to take a moment to thank the people who kept me going during this intens
 
 Thank you both for having my back!
 
+<a id="support-feedback"></a>
+
 ## 🤝 Support & Feedback
 
 **GitHub Issues are intentionally disabled.** Health-related limitations prevent me from reliably managing separate issue trackers across all of my plugin repositories.
 
-Before contacting me, follow [Troubleshooting](#-troubleshooting) and prepare a fresh Humble Bundle plugin log with a detailed description.
+Before contacting me, follow [Troubleshooting](#troubleshooting) and prepare a fresh Humble Bundle plugin log with a detailed description.
 
 * **GOG:** Send me a message or add me as a friend through my [GOG profile](https://www.gog.com/u/melcom).
 * **Email:** `melcom @ gmx.net`
