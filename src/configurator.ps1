@@ -211,11 +211,12 @@ function Read-GameFolderPath {
     $browse.Add_Click({
         $picker = New-Object System.Windows.Forms.FolderBrowserDialog
         $picker.Description = $str.Step1Desc1.Trim()
-        $picker.ShowNewFolderButton = $false
-        if (Test-Path -LiteralPath $pathBox.Text -PathType Container) {
-            $picker.SelectedPath = [System.IO.Path]::GetFullPath($pathBox.Text)
-        }
+        $picker.ShowNewFolderButton = $true
         try {
+            if (-not [string]::IsNullOrWhiteSpace($pathBox.Text) -and
+                (Test-Path -LiteralPath $pathBox.Text -PathType Container)) {
+                $picker.SelectedPath = [System.IO.Path]::GetFullPath($pathBox.Text)
+            }
             if ($picker.ShowDialog($dialog) -eq [System.Windows.Forms.DialogResult]::OK) {
                 $pathBox.Text = $picker.SelectedPath
             }

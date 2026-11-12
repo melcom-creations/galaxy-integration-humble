@@ -4,6 +4,18 @@ All notable changes to this plugin will be documented in this file.
 
 ---
 
+## Version 2.0.10-64bit
+
+### Added
+
+- **Create game folders while browsing:** The folder picker includes **Make New Folder** to create a game folder directly at the selected location.
+
+### Fixed
+
+- **Game folder browser:** Clicking **Browse** with an empty path field or only whitespace opens the folder picker without an unhandled PowerShell exception.
+
+---
+
 ## Version 2.0.9-64bit
 
 ### Fixed

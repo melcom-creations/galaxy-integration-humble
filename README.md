@@ -63,9 +63,9 @@ Place `manifest.json` directly inside this folder, without an extra nested plugi
 
 The interactive configurator guides you through the setup, validates your input, and writes the required configuration automatically. After successful Humble sign-in, the plugin opens it when the configuration file is missing or no DRM-free games folder is configured, including after reinstalling the plugin. It opens at most once per plugin run unless you request it manually. If setup is canceled, it is offered again on the next plugin start. Existing valid settings are reused.
 
-The configurator lets you type the folder containing your DRM-free Humble games into a Windows path field or select it with **Browse**. Backslashes, forward slashes, and an optional trailing separator are accepted.
+The configurator lets you type the folder containing your DRM-free Humble games into a Windows path field or select it with **Browse**. In the folder picker, use **Make New Folder** to create a folder at the selected location. Backslashes, forward slashes, and an optional trailing separator are accepted.
 
-If the selected folder is not named `Humble`, the configurator offers a separate `Humble` subfolder. Accept the offer to use or create that subfolder, or choose **No** to keep the folder you entered, such as `X:\Spiele` or `X:\Games`. Naming the folder `Humble` is optional. Missing directories are created only after confirmation.
+If the selected folder is not named `Humble`, the configurator offers a separate `Humble` subfolder. Accept the offer to use or create that subfolder, or choose **No** to keep the folder you entered, such as `X:\Spiele` or `X:\Games`. Naming the folder `Humble` is optional. If you enter a path to a missing folder, the configurator asks before creating it.
 
 You do not need to run `configurator.bat` manually during normal initial setup. To change the configuration later, double-click the **Install** button of any Humble Bundle game in GOG Galaxy. If the configurator does not open that way, double-click `configurator.bat` at:
 
