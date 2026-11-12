@@ -4,6 +4,24 @@ All notable changes to this plugin will be documented in this file.
 
 ---
 
+## Version 2.0.9-64bit
+
+### Fixed
+
+- **Sign-in after Humble's website update:** Uses Humble's current login and session validation. The confirmed sign-in opens the Windows default browser in a temporary profile and completes automatically in Galaxy.
+- **Library synchronization:** Reads the current Humble library interface and retains previously imported games while Humble reports that purchase migration is still in progress.
+- **Library links:** Game installation opens the corresponding page in the current Humble library for keys and downloads.
+- **Configuration setup:** The configurator opens when settings are missing, including after reinstalling the plugin, and writes Windows game-folder paths without redundant backslash escaping.
+- **Folder access validation:** Readable game folders are accepted even when their Windows security metadata cannot be queried.
+- **Local game detection:** Executable product titles identify games whose extracted archive folders have different names. Configured game folders are rescanned periodically to discover newly extracted games without restarting Galaxy.
+
+### Changed
+
+- **Configuration storage:** The plugin and configurator use `%LOCALAPPDATA%\melcom-creations\GOG Galaxy Integrations\Humble\galaxy-humble-config.ini`. Existing settings are moved automatically without overwriting a configuration already present at the new location.
+- **Game folder selection:** A Windows path field supports typing and browsing. A separate `Humble` subfolder is offered while custom folders remain valid. Missing directories are created only after confirmation.
+
+---
+
 ## Version 2.0.8-64bit
 
 ### Fixed

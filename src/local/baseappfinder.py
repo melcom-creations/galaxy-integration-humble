@@ -76,6 +76,13 @@ class BaseAppFinder(abc.ABC):
         for dir_name in dirs:
             await asyncio.sleep(0)
             matches = self.get_close_matches(dir_name, candidates, similarity)
+            if not matches and similarity == 1 and self._pathfinder.is_windows:
+                metadata_match = self._match_executable_title(pathlib.Path(root) / dir_name, candidates)
+                if metadata_match is not None:
+                    app_name, executable = metadata_match
+                    candidates.remove(app_name)
+                    yield app_name, (pathlib.Path(root) / dir_name).resolve(), executable
+                    continue
             for app_name in matches:
                 dir_path = pathlib.Path(root) / dir_name
                 best_exe = self.find_best_exe(dir_path, app_name)
@@ -85,6 +92,32 @@ class BaseAppFinder(abc.ABC):
                 candidates.remove(app_name)
                 yield app_name, dir_path.resolve(), pathlib.Path(best_exe)
                 break
+
+    def _match_executable_title(self, directory: pathlib.Path, candidates: Set[str]):
+        """Use an unambiguous product title when an archive folder has another name."""
+        def normalized(value):
+            return ''.join(character for character in value.casefold() if character.isalnum())
+
+        titles = {}
+        for candidate in candidates:
+            titles.setdefault(normalized(candidate), set()).add(candidate)
+        matches = {}
+        for executable in self._pathfinder.find_executables(directory):
+            if pathlib.Path(executable).stem.casefold().startswith(
+                ('setup', 'unins', 'vcredist', 'vc_redist', 'dxsetup', 'dotnet')
+            ):
+                continue
+            for title in self._pathfinder.executable_titles(executable):
+                for candidate in titles.get(normalized(title), ()):
+                    matches.setdefault(candidate, set()).add(executable)
+        if len(matches) != 1:
+            return None
+        app_name, executables = next(iter(matches.items()))
+        executable = self._pathfinder.choose_main_executable(app_name, sorted(executables))
+        if executable is None:
+            return None
+        logger.info('Matched local game by executable product title: %s', app_name)
+        return app_name, pathlib.Path(executable)
 
     def _get_close_matches(self, dir_name: str, candidates: Set[str], similarity: float) -> List[str]:
         """Wrapper around difflib.get_close_matches"""

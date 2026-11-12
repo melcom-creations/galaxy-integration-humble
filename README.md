@@ -8,7 +8,7 @@ This plugin imports your Humble Bundle library into GOG Galaxy 2.1+ 64-bit. Base
 
 The steps below are for Windows. Dependencies are bundled; no separate Python installation is needed.
 
-[Installation](#-installation) | [First Start](#-first-start-and-initial-sync) | [Troubleshooting](#-troubleshooting) | [Support & Feedback](#-support--feedback)
+[Installation](#-installation) | [First Start](#-first-start-and-initial-sync) | [Local Data](#-authentication-and-local-data) | [Troubleshooting](#-troubleshooting) | [Support & Feedback](#-support--feedback)
 
 ## ✨ Features
 
@@ -20,7 +20,7 @@ The steps below are for Windows. Dependencies are bundled; no separate Python in
 * Includes an interactive configurator for initial setup and later changes
 
 > [!NOTE]
-> macOS compatibility may be technically possible, but it is currently untested because I do not have access to a Mac. If you use macOS and would like to help test the integration, feel free to contact me.
+> The current Humble website integration uses Windows HTTP services and requires Windows.
 
 ## 📦 Installation
 
@@ -55,11 +55,13 @@ Place `manifest.json` directly inside this folder, without an extra nested plugi
 
 ## 🔧 Interactive Configurator
 
-The interactive configurator guides you through the setup, validates your input, and writes the required configuration automatically. It opens the first time you connect the Humble Bundle integration through GOG Galaxy. The old manual configuration workflow is no longer recommended.
+The interactive configurator guides you through the setup, validates your input, and writes the required configuration automatically. After successful Humble sign-in, the plugin opens it when the configuration file is missing or no DRM-free games folder is configured, including after reinstalling the plugin. It opens at most once per plugin run unless you request it manually. If setup is canceled, it is offered again on the next plugin start. Existing valid settings are reused.
 
-The configurator lets you select the folders containing your DRM-free Humble games. It validates every path and warns you before creating a missing directory or accepting a potentially unsafe root location.
+The configurator lets you type the folder containing your DRM-free Humble games into a Windows path field or select it with **Browse**. Backslashes, forward slashes, and an optional trailing separator are accepted.
 
-To change the configuration later, double-click the **Install** button of any Humble Bundle game in GOG Galaxy. If the configurator does not open that way, start it manually from:
+If the selected folder is not named `Humble`, the configurator offers a separate `Humble` subfolder. Accept the offer to use or create that subfolder, or choose **No** to keep the folder you entered, such as `X:\Spiele` or `X:\Games`. Naming the folder `Humble` is optional. Missing directories are created only after confirmation.
+
+You do not need to run `configurator.bat` manually during normal initial setup. To change the configuration later, double-click the **Install** button of any Humble Bundle game in GOG Galaxy. If the configurator does not open that way, double-click `configurator.bat` at:
 
 ```text
 %localappdata%\GOG.com\Galaxy\plugins\installed\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a\configurator.bat
@@ -68,8 +70,8 @@ To change the configuration later, double-click the **Install** button of any Hu
 ### 📋 Configuration Steps
 
 1. Select your preferred language.
-2. Enter the folder containing your DRM-free Humble games.
-3. Confirm folder creation if the directory does not exist.
+2. Enter the folder containing your DRM-free Humble games or select it with **Browse**.
+3. Choose whether to use the suggested `Humble` subfolder and confirm creation if needed.
 4. Review and confirm the remaining settings.
 
 Examples of valid game folders:
@@ -77,7 +79,32 @@ Examples of valid game folders:
 ```text
 D:\Humble
 D:\Games\Humble
+D:\Games
+D:\Games\Humble\
 ```
+
+Extract each DRM-free game into its own subfolder inside a configured game folder, with the game's executable directly inside that subfolder. On Windows, the plugin can also match the executable's product title when the archive folder has a different name, such as `DayOfTheTentacle_Win32_NoSteam_v1.8_20210106`. Configured folders are checked periodically, so newly extracted games can appear as installed without restarting Galaxy.
+
+### 📝 Configuration File
+
+The configurator writes `galaxy-humble-config.ini` at the location listed under [Data Storage](#-data-storage-and-what-disconnect-removes). Despite its `.ini` extension, this file uses TOML syntax. Manual editing is optional; the plugin reloads saved changes automatically.
+
+```toml
+[library]
+sources = [ "keys", "drm-free" ]
+show_revealed_keys = false
+
+[installed]
+search_dirs = [ "E:/Spiele/Humble" ]
+```
+
+| Setting | Meaning |
+|---|---|
+| `sources` | Which game sources to import: `keys` includes games supplied through third-party keys; `drm-free` includes games available as direct downloads. |
+| `show_revealed_keys` | Whether to include key entries whose keys have already been revealed. `false` hides these entries. Revealing a key does not prove that it was activated on another platform. |
+| `search_dirs` | Folders scanned for installed DRM-free Humble games. More than one folder can be listed. |
+
+The configurator writes Windows paths with forward slashes, such as `E:/Spiele/Humble`, to avoid backslash escaping. If editing a double-quoted TOML path manually, each backslash must be doubled: `"E:\\Spiele\\Humble"`.
 
 ## 🚀 First Start and Initial Sync
 
@@ -86,9 +113,28 @@ For the first synchronization after installing, updating, or configuring the plu
 1. If you use the Humble app, start it and keep it open.
 2. Start GOG Galaxy.
 3. Connect the Humble Bundle integration through **Settings -> Integrations** if necessary.
-4. Complete the interactive configuration when it opens.
+4. Complete sign-in in your Windows default browser. The dedicated login window closes automatically, and its temporary profile is removed. Complete the interactive configuration when it opens.
 5. Open the account menu in the top-right corner and select **Sync integrations**.
 6. Wait until the synchronization has finished.
+
+While Humble reports that purchase migration is still in progress, the integration retains previously imported games if they are temporarily absent from the website.
+
+## 🔒 Authentication and Local Data
+
+Confirm **Connect** in Galaxy's account connection dialog to begin sign-in. The displayed Galaxy sign-in window then opens your Windows default browser with a dedicated temporary profile. Galaxy stores the Humble session cookies as integration credentials. The browser closes and its temporary profile is removed after sign-in.
+
+Galaxy also displays a small waiting window to complete the connection. Keep it open while signing in through the browser; it closes automatically when the connection is complete.
+
+### 💾 Data Storage and What Disconnect Removes
+
+| Data | Local location | Result of clicking **Disconnect** |
+|---|---|---|
+| Humble session cookies used for authentication | Galaxy's credential area inside `%ProgramData%\GOG.com\Galaxy\storage\plugins\humble_f0ca3d80-a432-4d35-a9e3-60f27161ac3a-<Galaxy-user-id>-storage.db` | Removed by Galaxy |
+| Cached Humble library and locally tracked game time | The normal cache area inside the same Galaxy plugin database | The local cache can remain |
+| Library filters and configured DRM-free game folders | `%LOCALAPPDATA%\melcom-creations\GOG Galaxy Integrations\Humble\galaxy-humble-config.ini` | Remains |
+| Temporary login browser profile | `%TEMP%\melcom-humble-auth-<browser>-<random>\` | Removed after completed sign-in or normal plugin shutdown |
+
+The plugin and interactive configurator use the same configuration file. On startup, an existing `%LOCALAPPDATA%\galaxy-hb\galaxy-humble-config.ini` is moved to the new location with its contents preserved. If a configuration already exists at the new location, that file takes priority and the old file is left untouched.
 
 ## 🛠️ Troubleshooting
 

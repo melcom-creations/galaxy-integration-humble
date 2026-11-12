@@ -17,7 +17,7 @@ function Test-ValidGamePath {
         return @{ Valid = $false; Error = "PATH_EMPTY" }
     }
 
-    $Path = $Path.Trim().Trim('"').Trim("'")
+    $Path = $Path.Trim().Trim('"').Trim("'").Replace('/', '\')
 
     # Reject drive-only input early
     if ($Path -match '^[A-Za-z]$') {
@@ -87,12 +87,27 @@ function Test-ValidGamePath {
         return @{ Valid = $false; Error = "NOT_A_DIRECTORY"; Path = $fullPath }
     }
 
-    # Check if user has read permissions
+    # Check the directory-list access needed by local game scanning.
     try {
-        $null = Get-Acl -LiteralPath $fullPath
+        $iterator = [System.IO.Directory]::EnumerateFileSystemEntries($fullPath).GetEnumerator()
+        try {
+            $null = $iterator.MoveNext()
+        }
+        finally {
+            if ($iterator -is [System.IDisposable]) {
+                $iterator.Dispose()
+            }
+        }
     }
     catch {
-        return @{ Valid = $false; Error = "NO_READ_PERMISSION"; Path = $fullPath }
+        $cause = $_.Exception.GetBaseException()
+        if ($cause -is [System.IO.DirectoryNotFoundException]) {
+            return @{ Valid = $false; Error = "PATH_NOT_EXISTS"; Path = $fullPath }
+        }
+        if ($cause -is [System.UnauthorizedAccessException] -or $cause -is [System.Security.SecurityException]) {
+            return @{ Valid = $false; Error = "NO_READ_PERMISSION"; Path = $fullPath }
+        }
+        return @{ Valid = $false; Error = "PATH_READ_FAILED"; Path = $fullPath; Details = $cause.Message }
     }
 
     return @{ Valid = $true; Path = $fullPath }
@@ -105,7 +120,7 @@ function Test-CanCreateDirectory {
         return @{ CanCreate = $false; Error = "PATH_EMPTY" }
     }
 
-    $Path = $Path.Trim().Trim('"').Trim("'")
+    $Path = $Path.Trim().Trim('"').Trim("'").Replace('/', '\')
 
     if ($Path -match '^[A-Za-z]$') {
         return @{ CanCreate = $false; Error = "DRIVE_LETTER_ONLY" }
@@ -146,18 +161,92 @@ function Test-CanCreateDirectory {
         }
 
         $parentPath = Split-Path -Parent $fullPath
-
-        if (-not (Test-Path -LiteralPath $parentPath)) {
-            return @{ CanCreate = $false; Error = "PARENT_NOT_EXISTS"; Parent = $parentPath }
+        while (-not (Test-Path -LiteralPath $parentPath)) {
+            $ancestor = Split-Path -Parent $parentPath
+            if ([string]::IsNullOrWhiteSpace($ancestor) -or $ancestor -eq $parentPath) {
+                return @{ CanCreate = $false; Error = "PARENT_NOT_EXISTS"; Parent = $parentPath }
+            }
+            $parentPath = $ancestor
         }
-
-        $testPath = New-Item -ItemType Directory -Path $fullPath -Force -ErrorAction Stop
-        Remove-Item $testPath -Force -ErrorAction SilentlyContinue
+        if (-not (Test-Path -LiteralPath $parentPath -PathType Container)) {
+            return @{ CanCreate = $false; Error = "CANNOT_CREATE" }
+        }
 
         return @{ CanCreate = $true; Path = $fullPath }
     }
     catch {
         return @{ CanCreate = $false; Error = "CANNOT_CREATE"; Details = $_.Exception.Message }
+    }
+}
+
+function Read-GameFolderPath {
+    param([string]$InitialPath)
+
+    Add-Type -AssemblyName System.Windows.Forms
+    Add-Type -AssemblyName System.Drawing
+
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = "$scriptName - $($str.Step1Title)"
+    $dialog.ClientSize = New-Object System.Drawing.Size(590, 156)
+    $dialog.StartPosition = 'CenterScreen'
+    $dialog.FormBorderStyle = 'FixedDialog'
+    $dialog.MaximizeBox = $false
+    $dialog.MinimizeBox = $false
+    $dialog.TopMost = $true
+
+    $label = New-Object System.Windows.Forms.Label
+    $label.Text = $str.Step1Desc1.Trim()
+    $label.SetBounds(12, 12, 566, 28)
+
+    $pathBox = New-Object System.Windows.Forms.TextBox
+    $pathBox.Name = 'GameFolderPath'
+    $pathBox.Text = $InitialPath
+    $pathBox.SetBounds(12, 45, 444, 24)
+    $pathBox.AutoCompleteMode = 'SuggestAppend'
+    $pathBox.AutoCompleteSource = 'FileSystem'
+
+    $browse = New-Object System.Windows.Forms.Button
+    $browse.Text = $str.Step1Browse
+    $browse.SetBounds(466, 43, 112, 28)
+    $browse.Add_Click({
+        $picker = New-Object System.Windows.Forms.FolderBrowserDialog
+        $picker.Description = $str.Step1Desc1.Trim()
+        $picker.ShowNewFolderButton = $false
+        if (Test-Path -LiteralPath $pathBox.Text -PathType Container) {
+            $picker.SelectedPath = [System.IO.Path]::GetFullPath($pathBox.Text)
+        }
+        try {
+            if ($picker.ShowDialog($dialog) -eq [System.Windows.Forms.DialogResult]::OK) {
+                $pathBox.Text = $picker.SelectedPath
+            }
+        }
+        finally {
+            $picker.Dispose()
+        }
+    })
+
+    $example = New-Object System.Windows.Forms.Label
+    $example.Text = $str.Step1Desc2.Trim()
+    $example.SetBounds(12, 78, 566, 22)
+
+    $accept = New-Object System.Windows.Forms.Button
+    $accept.Text = $str.Step1UseFolder
+    $accept.SetBounds(328, 115, 120, 28)
+    $accept.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    $cancel = New-Object System.Windows.Forms.Button
+    $cancel.Text = $str.Step1Cancel
+    $cancel.SetBounds(458, 115, 120, 28)
+    $cancel.DialogResult = [System.Windows.Forms.DialogResult]::Cancel
+    $dialog.AcceptButton = $accept
+    $dialog.CancelButton = $cancel
+    $dialog.Controls.AddRange(@($label, $pathBox, $browse, $example, $accept, $cancel))
+    $dialog.Add_Shown({ $pathBox.Select(); $pathBox.SelectAll() })
+    try {
+        $result = $dialog.ShowDialog()
+        return @{ Accepted = ($result -eq [System.Windows.Forms.DialogResult]::OK); Path = $pathBox.Text }
+    }
+    finally {
+        $dialog.Dispose()
     }
 }
 
@@ -272,12 +361,16 @@ if ($lang -eq "EN") {
         Step1Desc1           = "  Please enter the folder path where your Humble games are installed."
         Step1Desc2           = "  Example: D:\Games\Humble"
         Step1Prompt          = "Folder Path:"
+        Step1Browse          = "Browse..."
+        Step1UseFolder       = "Use Folder"
+        Step1Cancel          = "Cancel"
         Step1Empty           = "No path entered. Please try again."
         Step1NotFound        = "The path does not exist on this PC: "
         Step1DriveLetterOnly = "You entered only a drive letter.`nPlease enter a real path like D:\Humble or D:\Spiele\Humble"
         Step1DriveRootOnly   = "That is only the drive root, not a Humble directory. Please enter a folder below it, for example D:\Humble or D:\Spiele\Humble"
         Step1NotADir         = "The path exists but is not a directory: "
         Step1NoPermission    = "No read permission for path: "
+        Step1ReadFailed      = "Could not read directory: "
         Step1InvalidChars    = "Invalid characters in path: "
         Step1PathTooLong     = "The path is too long (max 240 characters): "
         Step1InvalidFormat   = "Invalid path format. Use a full Windows path like D:\Humble."
@@ -290,6 +383,9 @@ if ($lang -eq "EN") {
         Step1RootWarning     = "That is only the drive root. This is not a Humble directory and can cause problems."
         Step1RootConfirm     = "Use this drive root anyway?"
         Step1TryAgain        = "Enter a different path?"
+        Step1HumbleSuggestion = "Recommended game folder: "
+        Step1HumbleCreate    = "Create and use this Humble subfolder? Choose No to keep your entered folder."
+        Step1HumbleUse       = "Use this existing Humble subfolder? Choose No to keep your entered folder."
         Step1Found           = "Directory found."
         Step1Aborted         = "Setup cancelled."
 
@@ -391,12 +487,16 @@ if ($lang -eq "EN") {
         Step1Desc1           = "  Gib den Pfad an, wo deine Humble-Spiele installiert sind."
         Step1Desc2           = "  Beispiel: D:\Games\Humble"
         Step1Prompt          = "Pfad:"
+        Step1Browse          = "Durchsuchen..."
+        Step1UseFolder       = "Verwenden"
+        Step1Cancel          = "Abbrechen"
         Step1Empty           = "Kein Pfad eingegeben. Bitte versuche es erneut."
         Step1NotFound        = "Das Verzeichnis existiert nicht: "
         Step1DriveLetterOnly = "Du hast nur einen Laufwerksbuchstaben eingegeben.`nBitte gib einen wirklichen Pfad an, zum Beispiel D:\Humble oder D:\Spiele\Humble"
         Step1DriveRootOnly   = "Das ist nur das Laufwerk, nicht das Humble-Verzeichnis. Bitte gib einen Ordner darunter an, zum Beispiel D:\Humble oder D:\Spiele\Humble"
         Step1NotADir         = "Der Pfad existiert, ist aber kein Verzeichnis: "
         Step1NoPermission    = "Keine Leseberechtigung fuer Pfad: "
+        Step1ReadFailed      = "Verzeichnis konnte nicht gelesen werden: "
         Step1InvalidChars    = "Ungueltige Zeichen im Pfad: "
         Step1PathTooLong     = "Der Pfad ist zu lang (max. 240 Zeichen): "
         Step1InvalidFormat   = "Ungueltiges Pfadformat. Bitte einen vollstaendigen Windows-Pfad angeben, z.B. D:\Humble."
@@ -409,6 +509,9 @@ if ($lang -eq "EN") {
         Step1RootWarning     = "Das ist nur das Laufwerk. Das ist kein Humble-Verzeichnis und kann Probleme verursachen."
         Step1RootConfirm     = "Dieses Laufwerk trotzdem verwenden?"
         Step1TryAgain        = "Anderen Pfad eingeben?"
+        Step1HumbleSuggestion = "Empfohlener Spieleordner: "
+        Step1HumbleCreate    = "Diesen Humble-Unterordner anlegen und verwenden? Mit Nein bleibt dein eingegebener Ordner erhalten."
+        Step1HumbleUse       = "Diesen vorhandenen Humble-Unterordner verwenden? Mit Nein bleibt dein eingegebener Ordner erhalten."
         Step1Found           = "Verzeichnis gefunden."
         Step1Aborted         = "Konfiguration abgebrochen."
 
@@ -525,8 +628,13 @@ while ($true) {
                     Write-Host ""
                 }
 
-                Write-Host "  $($str.Step1Prompt) " -NoNewline
-                $enteredPath = (Read-Host).Trim().Trim('"').Trim("'")
+                $pathEntry = Read-GameFolderPath $userPath
+                if (-not $pathEntry.Accepted) {
+                    Write-Host ""
+                    Write-Warn $str.Step1Aborted
+                    exit 0
+                }
+                $enteredPath = $pathEntry.Path.Trim().Trim('"').Trim("'").Replace('/', '\')
 
                 # Empty input handling
                 if ([string]::IsNullOrWhiteSpace($enteredPath)) {
@@ -577,6 +685,23 @@ while ($true) {
 
                 # Validate path with strict directory rules
                 $validation = Test-ValidGamePath $enteredPath
+                $creationConfirmed = $false
+
+                if ($validation.Valid -or $validation.Error -eq "PATH_NOT_EXISTS") {
+                    $folderName = [System.IO.Path]::GetFileName($validation.Path.TrimEnd('\'))
+                    if ($folderName -ine "Humble") {
+                        $suggestedPath = Join-Path $validation.Path "Humble"
+                        $suggestedExists = Test-Path -LiteralPath $suggestedPath -PathType Container
+                        Write-Host ""
+                        Write-Host ($str.Step1HumbleSuggestion + $suggestedPath) -ForegroundColor Cyan
+                        $question = if ($suggestedExists) { $str.Step1HumbleUse } else { $str.Step1HumbleCreate }
+                        if (Prompt-YesNo $question) {
+                            $enteredPath = $suggestedPath
+                            $creationConfirmed = -not $suggestedExists
+                            $validation = Test-ValidGamePath $enteredPath
+                        }
+                    }
+                }
 
                 if ($validation.Valid) {
                     $userPath = $validation.Path
@@ -624,9 +749,9 @@ while ($true) {
                         if ($canCreate.CanCreate) {
                             Write-Warn ($str.Step1NotFound + $validation.Path)
                             Write-Host ""
-                            if (Prompt-YesNo $str.Step1Create) {
+                            if ($creationConfirmed -or (Prompt-YesNo $str.Step1Create)) {
                                 try {
-                                    $created = New-Item -ItemType Directory -Path $validation.Path -Force -ErrorAction Stop
+                                    $created = [System.IO.Directory]::CreateDirectory($validation.Path)
                                     $userPath = $created.FullName
                                     Write-Host ""
                                     Write-Success $str.Step1Created
@@ -673,6 +798,10 @@ while ($true) {
                     }
                     "NO_READ_PERMISSION" {
                         Write-Err ($str.Step1NoPermission + $validation.Path)
+                    }
+                    "PATH_READ_FAILED" {
+                        Write-Err ($str.Step1ReadFailed + $validation.Path)
+                        Write-Err $validation.Details
                     }
                     default {
                         Write-Err ($str.Step1NotFound + $enteredPath)
@@ -867,8 +996,8 @@ while ($true) {
 #   SAVE CONFIG
 # ============================================================
 
-$escapedPath = $userPath -replace '\\', '\\\\'
-$configDir = "$env:LOCALAPPDATA\galaxy-hb"
+$tomlPath = $userPath.Replace('\', '/')
+$configDir = "$env:LOCALAPPDATA\melcom-creations\GOG Galaxy Integrations\Humble"
 $configFile = "$configDir\galaxy-humble-config.ini"
 
 # Create config directory
@@ -895,7 +1024,7 @@ $config = "[library]$crlf" +
           "show_revealed_keys = $showKeysVal$crlf" +
           "$crlf" +
           "[installed]$crlf" +
-          "search_dirs = [ `"$escapedPath`" ]$crlf"
+          "search_dirs = [ `"$tomlPath`" ]$crlf"
 
 try {
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($config)

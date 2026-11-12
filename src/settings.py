@@ -99,11 +99,19 @@ class Settings:
     DEFAULT_CONFIG_FILE = pathlib.Path(__file__).parent / 'config.ini'
 
     if IS_WINDOWS:
-        LOCAL_CONFIG_FILE = pathlib.Path.home() / "AppData/Local/galaxy-hb/galaxy-humble-config.ini"
+        _LOCAL_APP_DATA = pathlib.Path(
+            os.environ.get("LOCALAPPDATA") or pathlib.Path.home() / "AppData/Local"
+        )
+        LOCAL_CONFIG_FILE = (
+            _LOCAL_APP_DATA / "melcom-creations" / "GOG Galaxy Integrations"
+            / "Humble" / "galaxy-humble-config.ini"
+        )
+        LEGACY_CONFIG_FILE = pathlib.Path.home() / "AppData/Local/galaxy-hb/galaxy-humble-config.ini"
     else:
         LOCAL_CONFIG_FILE = pathlib.Path.home() / ".config/galaxy-humble.cfg"
 
     def __init__(self, suppress_initial_change=False):
+        self._migrate_legacy_config()
         self._last_modification_time: Optional[float] = None
 
         self._library = LibrarySettings()
@@ -115,6 +123,27 @@ class Settings:
         self._config: Dict[str, Any] = self.get_config()
 
         self.reload_config_if_changed(initial=True)
+
+    def _migrate_legacy_config(self):
+        if not IS_WINDOWS or self.LOCAL_CONFIG_FILE.exists():
+            return
+        legacy = self.LEGACY_CONFIG_FILE
+        if not legacy.is_file():
+            return
+        try:
+            self.LOCAL_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            legacy.rename(self.LOCAL_CONFIG_FILE)
+        except OSError as error:
+            if self.LOCAL_CONFIG_FILE.exists():
+                return
+            # Preserve configured game folders if moving the file is blocked.
+            self.LOCAL_CONFIG_FILE = legacy
+            logger.warning("Could not move the Humble configuration (%s); using its existing location", type(error).__name__)
+            return
+        try:
+            legacy.parent.rmdir()
+        except OSError:
+            pass
 
     @property
     def library(self) -> LibrarySettings:

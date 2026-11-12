@@ -69,6 +69,8 @@ class LibraryResolver:
         self._save_cache(self._cache)
 
     async def _fetch_orders(self) -> Dict[str, dict]:
+        if hasattr(self._api, 'get_library_orders'):
+            return await self._api.get_library_orders(self._cache.get('orders', {}))
         gamekeys = await self._api.get_gamekeys()
         gamekey_chunks = self._make_chunks(gamekeys, size=self.ORDERS_CHUNK_SIZE)
         api_calls = [self._api.get_orders_bulk_details(chunk) for chunk in gamekey_chunks]

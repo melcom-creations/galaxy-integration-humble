@@ -20,7 +20,7 @@ REM Run PowerShell script with proper execution policy
 REM -ExecutionPolicy Bypass: Allows unsigned scripts to run
 REM -NoProfile: Skip profile loading for faster execution
 REM -File: Execute the specified script
-powershell -NoProfile -ExecutionPolicy Bypass -File "!psScript!"
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File "!psScript!"
 
 REM Capture the exit code
 set "exitCode=!errorlevel!"
